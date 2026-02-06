@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> 50問で分かる！あなたの勉強タイプ動物診断 </title>
+<style>
+body {
+  margin: 0;
+  font-family: "Rounded Mplus 1c", system-ui, sans-serif;
+  background: linear-gradient(135deg,#ff9a9e,#fad0c4);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app {
+  width: 90%;
+  max-width: 420px;
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 15px 30px rgba(0,0,0,.15);
+}
+
+.hidden { display: none; }
+
+h1 { text-align:center; color:#ff6f91; }
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.start { background: linear-gradient(135deg,#feca57,#ff9f43); color:#fff; }
+.yes { background: linear-gradient(135deg,#48dbfb,#1dd1a1); color:#fff; }
+.no { background: linear-gradient(135deg,#ff6b6b,#ee5253); color:#fff; }
+.retry { background: linear-gradient(135deg,#1dd1a1,#10ac84); color:#fff; }
+
+.progress { margin-bottom:10px; text-align:center; color:#555; }
+.bar { height:10px; background:#eee; border-radius:10px; overflow:hidden; margin-bottom:15px; }
+.bar-inner { height:100%; width:0%; background:linear-gradient(90deg,#54a0ff,#5f27cd); }
+
+.card { text-align:center; padding:20px; border-radius:18px; background:linear-gradient(135deg,#fbc531,#e84118); color:white; }
+.animal { font-size:60px; margin-bottom:10px; }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ホーム -->
+  <div id="home">
+    <h1>🧠 勉強タイプ動物診断</h1>
+    <p style="text-align:center;">50問であなたの勉強タイプを診断！</p>
+    <button class="start" onclick="startQuiz()">診断スタート</button>
+  </div>
+
+  <!-- クイズ -->
+  <div id="quiz" class="hidden">
+    <div class="progress" id="progressText"></div>
+    <div class="bar"><div class="bar-inner" id="bar"></div></div>
+    <h3 id="question"></h3>
+    <button class="yes" onclick="answer(true)">はい</button>
+    <button class="no" onclick="answer(false)">いいえ</button>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result" class="hidden">
+    <div class="card">
+      <div class="animal" id="animalEmoji"></div>
+      <h2 id="animalName"></h2>
+      <p id="advice"></p>
+      <p id="explanation" style="margin-top:10px;text-align:left;"></p>
+    </div>
+    <button class="retry" onclick="restartQuiz()">もう一回診断する</button>
+  </div>
+
+</div>
+
+<script>
+// 動物タイプと基本アドバイス
+const animals = {
+  LION:{name:"ライオン",emoji:"🦁",advice:"目標を決めて一気に進めると最強", explanation:"目標があると一気に集中力が上がります。勝ち筋が見えると強く、最初にゴールを決めることで効率よく進められます。模試やテスト日を逆算して計画を立てると実力が伸びやすく、計画に沿った小さな達成感を積み重ねることが重要です。"},
+  WOLF:{name:"オオカミ",emoji:"🐺",advice:"一人集中型。静かな環境が◎", explanation:"一人で黙々とやると集中力が高まります。周りに左右されにくく、静かな環境を最優先すると効果的です。自習時間を確保し、人と比べすぎないことで安定して学習できます。"},
+  BEAR:{name:"クマ",emoji:"🐻",advice:"復習重視で安定感アップ", explanation:"じっくり型で、繰り返しによって知識を定着させます。一度身につくと崩れにくく、復習をルーティン化すると効果的です。同じ問題を何周も解くことで安定感のある学習が可能です。"},
+  DEER:{name:"シカ",emoji:"🦌",advice:"短時間×回数で伸びる", explanation:"調子の良い日は爆発的に伸び、ノリと勢いが大事です。短時間集中を繰り返し、気分転換を多めに取り入れることで効率的に学習できます。うまくいかない日も割り切って計画を調整すると長期的に成果が出ます。"},
+  CAT:{name:"ネコ",emoji:"🐱",advice:"気分転換を上手に使おう", explanation:"自分のリズムを最優先に学習するタイプです。気分が合うと集中力が高まり、時間帯や環境を自由に選ぶと効率が上がります。無理な計画はせず、好きな環境を作ることがポイントです。"},
+  DOG:{name:"イヌ",emoji:"🐶",advice:"誰かと一緒にやると続く", explanation:"他人と一緒に学習すると力を発揮しやすいタイプです。友達と問題を出し合ったり、オンライン自習を活用するとモチベーションが維持できます。約束や協力を使って勉強習慣を作ると効果的です。"},
+  FOX:{name:"キツネ",emoji:"🦊",advice:"工夫と効率を重視しよう", explanation:"全体を見て必要な部分に集中するのが得意です。無駄を省き、効率的な学習方法を探すことができます。まとめノートを活用したり、出やすい部分に意識を向けると理解が深まります。"},
+  OWL:{name:"フクロウ",emoji:"🦉",advice:"夜型なら朝は復習だけ", explanation:"静かな時間に集中力が上がるタイプです。夜は理解系の学習、昼は軽めにするなど時間帯を意識すると効果的です。睡眠不足に注意し、夜用タスクを決めて学習しましょう。"},
+  RABBIT:{name:"ウサギ",emoji:"🐰",advice:"テンポよく問題演習", explanation:"テンポよく進めることが得意で、ダラダラ学習は苦手です。タイマーを使った勉強や、量より回転数を意識した学習が向いています。止まったら一旦次に進む柔軟さも大事です。"},
+  MONK:{name:"サル",emoji:"🐵",advice:"アウトプット多めが◎", explanation:"話す・解く・説明することで理解を深めるタイプです。受け身の学習より、問題演習や説明中心のアウトプットを重視すると効果的です。声に出して覚える勉強もおすすめです。"},
+  PENG:{name:"ペンギン",emoji:"🐧",advice:"ルーティン化しよう", explanation:"毎日同じ時間に勉強すると習慣化しやすいタイプです。ルーティンを崩さないことで効率が上がり、計画的に学習できます。"},
+  HORSE:{name:"ウマ",emoji:"🐴",advice:"体を動かす休憩が効く", explanation:"一度習慣になると止まらない継続型です。毎日少しずつ学習を続け、休憩を取り入れても再開を大事にすると成果が出ます。"},
+  TIGR:{name:"トラ",emoji:"🐯",advice:"難問チャレンジで成長", explanation:"短期集中の爆発力があります。短い締切を作ったり、一気に仕上げる日を作ると学習効率が上がります。ムラを前提に計画すると無理なく成長できます。"},
+  ELEP:{name:"ゾウ",emoji:"🐘",advice:"まとめノートが最強", explanation:"ノートにまとめて整理することが得意です。一度理解した内容を長く覚えられ、全体像をつかんでから細部を覚えると理解が深まります。"}
+};
+
+const animalKeys = Object.keys(animals);
+let score = {};
+animalKeys.forEach(k=>score[k]=0);
+
+// 質問50問（typeはanimalsキーに対応）
+let questions = [
+  {text:"勉強を始める前に、今日は何をやるか決めることが多い", type:"LION"},
+  {text:"テストまでの残り日数を意識して勉強する", type:"LION"},
+  {text:"勉強計画を立てるのはわりと好きなほうだ", type:"LION"},
+  {text:"ゴールが決まっている方がやる気が出る", type:"LION"},
+  {text:"短時間でも集中できれば満足だ", type:"RABBIT"},
+  {text:"長時間机に向かうより、区切ってやりたい", type:"RABBIT"},
+  {text:"集中できない日は無理にやらない", type:"BEAR"},
+  {text:"気分が乗っているときは一気に進める", type:"DEER"},
+  {text:"勉強する場所にはこだわりがある", type:"OWL"},
+  {text:"静かじゃないと集中しにくい", type:"OWL"},
+  {text:"音楽を聴きながら勉強することがある", type:"CAT"},
+  {text:"場所を変えると気分も切り替わる", type:"CAT"},
+  {text:"一人で勉強する方がはかどる", type:"WOLF"},
+  {text:"誰かと一緒の方がやる気が出る", type:"DOG"},
+  {text:"人に説明すると理解が深まる", type:"MONK"},
+  {text:"周りのペースに影響されやすい", type:"DEER"},
+  {text:"ノートをまとめるのは結構好きだ", type:"ELEP"},
+  {text:"書いて覚えるタイプだと思う", type:"ELEP"},
+  {text:"問題を解きながら覚える方が得意", type:"MONK"},
+  {text:"声に出して覚えることがある", type:"MONK"},
+  {text:"復習はかなり大事だと思っている", type:"BEAR"},
+  {text:"同じ問題を何回も解くのは苦じゃない", type:"BEAR"},
+  {text:"一度で完璧に覚えたいタイプだ", type:"ELEP"},
+  {text:"忘れてから覚え直すことが多い", type:"BEAR"},
+  {text:"効率のいいやり方を探しがちだ", type:"FOX"},
+  {text:"近道があればそっちを選びたい", type:"FOX"},
+  {text:"時間をかけすぎるのは苦手だ", type:"FOX"},
+  {text:"要点だけ押さえたいタイプだ", type:"FOX"},
+  {text:"やる気は日によってかなり違う", type:"CAT"},
+  {text:"気分転換がないと続かない", type:"CAT"},
+  {text:"勉強のご褒美を決めることがある", type:"DEER"},
+  {text:"モチベが下がると立て直すのが大変", type:"CAT"},
+  {text:"毎日同じ時間に勉強しやすい", type:"PENG"},
+  {text:"勉強を生活の一部にしたい", type:"PENG"},
+  {text:"ルーティンが崩れると調子が狂う", type:"PENG"},
+  {text:"習慣化できると強いと思う", type:"HORSE"},
+  {text:"新しい勉強法を試すのが好きだ", type:"TIGR"},
+  {text:"合わない方法はすぐやめる", type:"TIGR"},
+  {text:"失敗してもやり方を変えればOK派だ", type:"TIGR"},
+  {text:"安定より変化を選びがちだ", type:"TIGR"},
+  {text:"完璧じゃなくても進めたい", type:"BEAR"},
+  {text:"ミスしても引きずらない方だ", type:"BEAR"},
+  {text:"できないと焦りやすい", type:"DEER"},
+  {text:"マイペースでやりたいと思っている", type:"CAT"},
+  {text:"自分なりの勉強スタイルがある", type:"LION"},
+  {text:"他人のやり方を参考にすることが多い", type:"FOX"},
+  {text:"勉強は工夫次第で楽になると思う", type:"FOX"},
+  {text:"成績より「理解」を重視したい", type:"ELEP"},
+  {text:"勉強のやり方には正解が一つじゃないと思う", type:"ELEP"},
+  {text:"自分に合う方法を見つけたいと思っている", type:"CAT"}
+];
+
+// ランダム化
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
+  return array;
+}
+
+let current = 0;
+let shuffledQuestions = [];
+
+function startQuiz(){
+  score = {};
+  animalKeys.forEach(k=>score[k]=0);
+  current = 0;
+  shuffledQuestions = shuffle([...questions]);
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  showQuestion();
+}
+
+function showQuestion(){
+  const q = shuffledQuestions[current];
+  document.getElementById('question').textContent = q.text;
+  document.getElementById('progressText').textContent = `${current+1} / ${shuffledQuestions.length}`;
+  document.getElementById('bar').style.width = `${((current)/shuffledQuestions.length)*100}%`;
+}
+
+function answer(yes){
+  if(yes){
+    const type = shuffledQuestions[current].type;
+    score[type]++;
+  }
+  current++;
+  if(current < shuffledQuestions.length){
+    showQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult(){
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+
+  let best = animalKeys[0];
+  animalKeys.forEach(k=>{
+    if(score[k] > score[best]) best = k;
+  });
+
+  document.getElementById('animalEmoji').textContent = animals[best].emoji;
+  document.getElementById('animalName').textContent = animals[best].name+"タイプ";
+  document.getElementById('advice').textContent = animals[best].advice;
+  document.getElementById('explanation').textContent = animals[best].explanation;
+}
+
+function restartQuiz(){
+  startQuiz();
+}
+</script>
+</body>
+</html>
